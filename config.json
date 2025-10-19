@@ -1,0 +1,181 @@
+{
+  "_comment": "3D Bin Packing Optimization System Configuration",
+  "_assignment": "Evolutionary Computing - 3D Bin Packing Problem",
+  "_studentId": "215526U",
+  
+  "bin": {
+    "width": 100,
+    "height": 80,
+    "depth": 100,
+    "totalVolume": 800000,
+    "units": "cubic units"
+  },
+  
+  "items": [
+    {
+      "id": "A",
+      "description": "Small cubic item with high quantity",
+      "dimensions": {
+        "width": 10,
+        "height": 10,
+        "depth": 10,
+        "volume": 1000
+      },
+      "quantity": 150,
+      "cost": 150.0
+    },
+    {
+      "id": "B",
+      "description": "Medium rectangular item",
+      "dimensions": {
+        "width": 20,
+        "height": 15,
+        "depth": 12,
+        "volume": 3600
+      },
+      "quantity": 70,
+      "cost": 70.0
+    },
+    {
+      "id": "C",
+      "description": "Small flat item with lowest quantity",
+      "dimensions": {
+        "width": 5,
+        "height": 8,
+        "depth": 6,
+        "volume": 240
+      },
+      "quantity": 60,
+      "cost": 60.0
+    },
+    {
+      "id": "D",
+      "description": "Medium item with highest quantity and cost",
+      "dimensions": {
+        "width": 10,
+        "height": 12,
+        "depth": 10,
+        "volume": 1200
+      },
+      "quantity": 300,
+      "cost": 300.0
+    }
+  ],
+  
+  "geneticAlgorithm": {
+    "standard": {
+      "populationSize": 150,
+      "maxGenerations": 100,
+      "mutationRate": 0.15,
+      "crossoverRate": 0.7,
+      "tournamentSize": 5,
+      "operators": {
+        "crossover": "PartiallyMatchedCrossover",
+        "mutation": "SwapMutator",
+        "selection": "TournamentSelector"
+      },
+      "chromosome": {
+        "type": "EnumGene<String>",
+        "encoding": "Permutation-based"
+      }
+    },
+    "improved": {
+      "populationSize": 150,
+      "maxGenerations": 100,
+      "mutationRate": 0.2,
+      "crossoverRate": 0.65,
+      "tournamentSize": 5,
+      "operators": {
+        "crossover": "SinglePointCrossover",
+        "mutation": "Mutator",
+        "selection": "TournamentSelector"
+      },
+      "chromosome": {
+        "type": "IntegerGene",
+        "encoding": "Priority-based"
+      }
+    }
+  },
+  
+  "fitness": {
+    "utilizationWeight": 100.0,
+    "valueDivisor": 10.0,
+    "wastagePenalty": 50.0,
+    "formula": "Fitness = (usedVolume / totalVolume) * utilizationWeight + (totalValue / valueDivisor) - (wastedVolume / totalVolume) * wastagePenalty"
+  },
+  
+  "agent": {
+    "name": "PackingBot-Alpha",
+    "thresholds": {
+      "excellent": 80.0,
+      "good": 60.0
+    }
+  },
+  
+  "display": {
+    "progressInterval": 10,
+    "width": 60,
+    "showGenerationDetails": true
+  },
+  
+  "mutationStudy": {
+    "chromosomeLength": 10,
+    "populationSize": 1000,
+    "generations": 100,
+    "rates": {
+      "low": 0.01,
+      "high": 0.3
+    }
+  },
+  
+  "visualization": {
+    "chart": {
+      "width": 800,
+      "height": 600,
+      "showLegend": true,
+      "showGrid": true
+    },
+    "bin": {
+      "showWireframe": true,
+      "showItems": true,
+      "colorScheme": "default"
+    }
+  },
+  
+  "logging": {
+    "level": "INFO",
+    "showTimestamps": true,
+    "showFitnessDetails": true,
+    "showEvolutionStats": true
+  },
+  
+  "performance": {
+    "optimization": {
+      "maxTimeSeconds": 300,
+      "earlyStoppingEnabled": false,
+      "convergenceThreshold": 0.001
+    },
+    "parallelProcessing": {
+      "enabled": true,
+      "threadPoolSize": 4
+    },
+    "memory": {
+      "cacheEnabled": true,
+      "maxCacheSizeMB": 256
+    }
+  },
+  
+  "experimental": {
+    "adaptiveMutation": false,
+    "elitism": {
+      "enabled": true,
+      "count": 5
+    },
+    "diversityCheck": false,
+    "multiObjective": {
+      "enabled": false,
+      "objectivesCount": 1
+    }
+  }
+}
+

@@ -120,7 +120,7 @@ public class BinPackingMain {
 
         PackingSolution solution = result.getSolution();
 
-        int usedVolume = bin.getTotalVolume() - solution.getTotalWastage();
+        int usedVolume = (int) (bin.getTotalVolume() - solution.getTotalWastage());
         double utilizationPercent = (double) usedVolume / bin.getTotalVolume() * 100.0;
 
         System.out.println("\nProblem Characteristics:");
@@ -134,7 +134,7 @@ public class BinPackingMain {
         System.out.printf("  - Items Packed: %d%n", solution.getPlacements().size());
 
         System.out.println("\nSpace Metrics:");
-        System.out.printf("  - Total Volume: %d cubic units%n", bin.getTotalVolume());
+        System.out.printf("  - Total Volume: %.0f cubic units%n", bin.getTotalVolume());
         System.out.printf("  - Used Volume: %d cubic units%n", usedVolume);
         System.out.printf("  - Wasted Volume: %d cubic units%n", solution.getTotalWastage());
 
@@ -164,4 +164,3 @@ public class BinPackingMain {
         System.out.println("=".repeat(60) + "\n");
     }
 }
-

@@ -163,8 +163,8 @@ public class PackingAgent {
         log("Bin Visualization (Top View Projection)");
         log("=".repeat(50));
 
-        int width = bin.getWidth();
-        int depth = bin.getDepth();
+        int width = (int) bin.getWidth();
+        int depth = (int) bin.getDepth();
 
         // Create a 2D grid for visualization (top view)
         char[][] grid = new char[depth][width];
@@ -179,7 +179,10 @@ public class PackingAgent {
         for (PackingSolution.ItemPlacement placement : solution.getPlacements()) {
             if (itemIndex < 26) { // Use A-Z for first 26 items
                 char marker = (char) ('A' + itemIndex);
-                Position3D pos = placement.getPosition();
+                Object posObj = placement.getPosition();
+                if (!(posObj instanceof Position3D))
+                    continue;
+                Position3D pos = (Position3D) posObj;
                 if (pos.getZ() < depth && pos.getX() < width) {
                     grid[pos.getZ()][pos.getX()] = marker;
                 }
@@ -207,4 +210,3 @@ public class PackingAgent {
         return executionLog;
     }
 }
-

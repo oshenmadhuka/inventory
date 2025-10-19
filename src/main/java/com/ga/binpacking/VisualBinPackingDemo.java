@@ -94,7 +94,7 @@ public class VisualBinPackingDemo {
 
         PackingSolution solution = problem.convertToSolution(best.genotype());
 
-        int usedVolume = inventoryBin.getTotalVolume() - solution.getTotalWastage();
+        int usedVolume = (int) (inventoryBin.getTotalVolume() - solution.getTotalWastage());
         double utilization = (double) usedVolume / inventoryBin.getTotalVolume() * 100.0;
 
         System.out.printf("🎯 Best Fitness: %.4f%n", best.fitness());

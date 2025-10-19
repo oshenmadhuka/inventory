@@ -60,16 +60,16 @@ public class BinPackingProblem {
         List<PlacedItem> placedItems = packItems(chromosome, testBin);
 
         // Calculate fitness metrics
-        int usedVolume = placedItems.stream()
-                .mapToInt(pi -> pi.getItem().getVolume())
+        double usedVolume = placedItems.stream()
+                .mapToDouble(pi -> pi.getItem().getVolume())
                 .sum();
 
         double totalValue = placedItems.stream()
                 .mapToDouble(pi -> pi.getItem().getCost())
                 .sum();
 
-        int totalVolume = testBin.getTotalVolume();
-        int wastedVolume = totalVolume - usedVolume;
+        double totalVolume = testBin.getTotalVolume();
+        double wastedVolume = totalVolume - usedVolume;
 
         // Fitness components:
         // 1. Space utilization (0-100%)
@@ -95,7 +95,7 @@ public class BinPackingProblem {
         List<PlacedItem> packed = new ArrayList<>();
 
         // Track occupied spaces using a simplified 3D grid approach
-        boolean[][][] occupied = new boolean[bin.getWidth()][bin.getHeight()][bin.getDepth()];
+        boolean[][][] occupied = new boolean[(int) bin.getWidth()][(int) bin.getHeight()][(int) bin.getDepth()];
 
         // Keep track of the next available position for faster packing
         int currentX = 0, currentY = 0, currentZ = 0;
@@ -120,7 +120,7 @@ public class BinPackingProblem {
                 markOccupied(occupied, position, item);
 
                 // Update current position hint for next item
-                currentX = position.getX() + item.getWidth();
+                currentX = (int) (position.getX() + item.getWidth());
                 if (currentX >= testBin.getWidth()) {
                     currentX = 0;
                     currentZ += 5; // Move to next layer
@@ -238,14 +238,14 @@ public class BinPackingProblem {
         }
 
         // Calculate metrics
-        int usedVolume = placedItems.stream()
-                .mapToInt(pi -> pi.getItem().getVolume())
+        double usedVolume = placedItems.stream()
+                .mapToDouble(pi -> pi.getItem().getVolume())
                 .sum();
         double totalCost = placedItems.stream()
                 .mapToDouble(pi -> pi.getItem().getCost())
                 .sum();
 
-        solution.setTotalWastage(testBin.getTotalVolume() - usedVolume);
+        solution.setTotalWastage((int) (testBin.getTotalVolume() - usedVolume));
         solution.setTotalCost(totalCost);
         solution.setFitness(fitness(genotype));
 

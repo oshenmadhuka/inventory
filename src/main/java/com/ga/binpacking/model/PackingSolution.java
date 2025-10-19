@@ -58,16 +58,13 @@ public class PackingSolution {
                 placements.size(), fitness, totalWastage, totalCost);
     }
 
-    /**
-     * Represents a single item placement decision
-     */
     public static class ItemPlacement {
         private final String itemId;
         private final int quantity;
-        private final Position3D position;
+        private final Object position;
         private final int rotationCode;
 
-        public ItemPlacement(String itemId, int quantity, Position3D position, int rotationCode) {
+        public ItemPlacement(String itemId, int quantity, Object position, int rotationCode) {
             this.itemId = itemId;
             this.quantity = quantity;
             this.position = position;
@@ -82,7 +79,7 @@ public class PackingSolution {
             return quantity;
         }
 
-        public Position3D getPosition() {
+        public Object getPosition() {
             return position;
         }
 
@@ -97,4 +94,3 @@ public class PackingSolution {
         }
     }
 }
-

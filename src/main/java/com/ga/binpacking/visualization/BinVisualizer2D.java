@@ -32,7 +32,7 @@ public class BinVisualizer2D extends JPanel {
      * Calculate appropriate scale for visualization
      */
     private int calculateScale() {
-        int maxDim = Math.max(bin.getWidth(), bin.getHeight());
+        int maxDim = (int) Math.max(bin.getWidth(), bin.getHeight());
         return Math.max(1, 500 / maxDim);
     }
 
@@ -74,8 +74,8 @@ public class BinVisualizer2D extends JPanel {
      * Draw single 2D view of the bin packing
      */
     private void draw2DView(Graphics2D g2d, int offsetX, int offsetY) {
-        int width = bin.getWidth() * scale;
-        int height = bin.getHeight() * scale;
+        int width = (int) (bin.getWidth() * scale);
+        int height = (int) (bin.getHeight() * scale);
 
         // Draw bin background with shadow
         g2d.setColor(new Color(180, 180, 180));
@@ -102,12 +102,15 @@ public class BinVisualizer2D extends JPanel {
         // Draw items
         for (PackingSolution.ItemPlacement placement : solution.getPlacements()) {
             String itemId = placement.getItemId();
-            Position3D pos = placement.getPosition();
+            Object posObj = placement.getPosition();
+            if (!(posObj instanceof Position3D))
+                continue;
+            Position3D pos = (Position3D) posObj;
             Color color = itemColors.getOrDefault(itemId, Color.GRAY);
 
             // Map 3D position to 2D (use X and Y coordinates)
             int x = offsetX + pos.getX() * scale;
-            int y = offsetY + (bin.getHeight() - pos.getY() - 10) * scale; // Flip Y axis
+            int y = offsetY + (int) ((bin.getHeight() - pos.getY() - 10) * scale); // Flip Y axis
 
             int itemWidth = 10 * scale;
             int itemHeight = 10 * scale;
@@ -204,12 +207,12 @@ public class BinVisualizer2D extends JPanel {
         g2d.setFont(new Font("Arial", Font.BOLD, 14));
         g2d.drawString("📊 Packing Statistics", offsetX, offsetY);
 
-        int usedVolume = bin.getTotalVolume() - solution.getTotalWastage();
+        int usedVolume = (int) (bin.getTotalVolume() - solution.getTotalWastage());
         double utilization = (double) usedVolume / bin.getTotalVolume() * 100.0;
 
         g2d.setFont(new Font("Arial", Font.PLAIN, 12));
         int y = offsetY + 20;
-        g2d.drawString(String.format("Bin Dimensions: %d × %d units",
+        g2d.drawString(String.format("Bin Dimensions: %.0f × %.0f units",
                 bin.getWidth(), bin.getHeight()), offsetX, y);
         y += 18;
         g2d.drawString(String.format("Space Utilization: %.2f%%", utilization), offsetX, y);

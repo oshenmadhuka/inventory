@@ -17,20 +17,18 @@ public class ImprovedBinPackingMain {
 
     public static void main(String[] args) {
         System.out.println("\n" + "=".repeat(60));
-        System.out.println("  3D BIN PACKING OPTIMIZATION SYSTEM (IMPROVED)");
-        System.out.println("  With Enhanced Diversity & Multiple Packing Strategies");
+        System.out.println("  2D SHAPE-BASED INVENTORY OPTIMIZATION SYSTEM");
+        System.out.println("  With Shape Wastage Consideration");
         System.out.println("=".repeat(60) + "\n");
 
-        // Define the inventory space
-        int binWidth = 100;
-        int binHeight = 80;
-        int binDepth = 100;
+        double binWidth = 200;
+        double binHeight = 200;
 
-        Bin inventoryBin = new Bin(binWidth, binHeight, binDepth);
+        Bin inventoryBin = new Bin(binWidth, binHeight);
 
         System.out.println("Inventory Space Configuration:");
-        System.out.println("  Dimensions: " + binWidth + " x " + binHeight + " x " + binDepth);
-        System.out.println("  Total Volume: " + inventoryBin.getTotalVolume() + " cubic units");
+        System.out.println("  Dimensions: " + binWidth + " x " + binHeight);
+        System.out.println("  Total Area: " + inventoryBin.getTotalArea() + " square units");
         System.out.println();
 
         // Define items
@@ -93,15 +91,31 @@ public class ImprovedBinPackingMain {
         System.out.println("========================================");
         System.out.printf("Best Fitness: %.4f%n", best.fitness());
 
-        // Convert to solution
         PackingSolution solution = problem.convertToSolution(best.genotype());
 
-        int usedVolume = inventoryBin.getTotalVolume() - solution.getTotalWastage();
-        double utilization = (double) usedVolume / inventoryBin.getTotalVolume() * 100.0;
+        double totalArea = inventoryBin.getTotalArea();
+        double usedArea = 0;
+        double occupiedArea = 0;
+
+        for (var placement : solution.getPlacements()) {
+            String itemId = placement.getItemId();
+            Item item = availableItems.stream()
+                    .filter(i -> i.getId().equals(itemId))
+                    .findFirst()
+                    .orElse(null);
+            if (item != null) {
+                usedArea += item.getArea();
+                occupiedArea += item.getBoundingBoxArea();
+            }
+        }
+
+        double wastedArea = occupiedArea - usedArea;
+        double utilization = (usedArea / totalArea) * 100.0;
 
         System.out.printf("Space Utilization: %.2f%%%n", utilization);
-        System.out.printf("Used Volume: %d / %d%n", usedVolume, inventoryBin.getTotalVolume());
-        System.out.printf("Wasted Volume: %d%n", solution.getTotalWastage());
+        System.out.printf("Used Area: %.2f / %.2f%n", usedArea, totalArea);
+        System.out.printf("Occupied Area: %.2f%n", occupiedArea);
+        System.out.printf("Wasted Area (due to shapes): %.2f%n", wastedArea);
         System.out.printf("Total Value: $%.2f%n", solution.getTotalCost());
         System.out.printf("Items Packed: %d%n", solution.getPlacements().size());
 
@@ -120,21 +134,12 @@ public class ImprovedBinPackingMain {
 
         System.out.println("========================================\n");
 
-        // Use AI agent
         System.out.println("=".repeat(60));
         System.out.println("  AI AGENTIC FRAMEWORK - PLAN EXECUTION");
         System.out.println("=".repeat(60) + "\n");
 
         PackingAgent agent = new PackingAgent("PackingBot-Improved");
 
-        // Create a mock result for agent
-        var mockResult = new Object() {
-            PackingSolution getSolution() {
-                return solution;
-            }
-        };
-
-        // Simplified agent demonstration
         System.out.println("Agent '" + agent + "' analyzing solution...");
         System.out.println("✓ Solution validated");
         System.out.println("✓ " + solution.getPlacements().size() + " items successfully packed");
@@ -154,10 +159,10 @@ public class ImprovedBinPackingMain {
     private static List<Item> createItemsFromAssignment() {
         List<Item> items = new ArrayList<>();
 
-        items.add(new Item("A", 10, 10, 10, 150, 150.0));
-        items.add(new Item("B", 20, 15, 12, 70, 70.0));
-        items.add(new Item("C", 5, 8, 6, 60, 60.0));
-        items.add(new Item("D", 10, 12, 10, 300, 300.0));
+        items.add(new Item("A", Item.Shape.RECTANGLE, 10, 15, 150, 150.0));
+        items.add(new Item("B", Item.Shape.SQUARE, 12, 12, 70, 70.0));
+        items.add(new Item("C", Item.Shape.CIRCLE, 6, 0, 60, 60.0));
+        items.add(new Item("D", Item.Shape.TRIANGLE, 10, 10, 300, 300.0));
 
         return items;
     }

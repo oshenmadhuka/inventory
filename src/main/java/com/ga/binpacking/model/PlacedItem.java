@@ -1,12 +1,15 @@
 package com.ga.binpacking.model;
 
-/**
- * Represents an item placed at a specific position in the bin
- */
 public class PlacedItem {
     private final Item item;
-    private final Position3D position;
-    private final int rotationCode; // 0-5 for different orientations
+    private final Object position;
+    private final int rotationCode;
+
+    public PlacedItem(Item item, Position2D position, int rotationCode) {
+        this.item = item;
+        this.position = position;
+        this.rotationCode = rotationCode;
+    }
 
     public PlacedItem(Item item, Position3D position, int rotationCode) {
         this.item = item;
@@ -18,18 +21,29 @@ public class PlacedItem {
         return item;
     }
 
-    public Position3D getPosition() {
+    public Object getPosition() {
         return position;
+    }
+
+    public Position2D getPosition2D() {
+        if (position instanceof Position2D) {
+            return (Position2D) position;
+        }
+        return null;
+    }
+
+    public Position3D getPosition3D() {
+        if (position instanceof Position3D) {
+            return (Position3D) position;
+        }
+        return null;
     }
 
     public int getRotationCode() {
         return rotationCode;
     }
 
-    /**
-     * Get the actual width considering rotation
-     */
-    public int getActualWidth() {
+    public double getActualWidth() {
         switch (rotationCode) {
             case 0:
             case 1:
@@ -45,10 +59,7 @@ public class PlacedItem {
         }
     }
 
-    /**
-     * Get the actual height considering rotation
-     */
-    public int getActualHeight() {
+    public double getActualHeight() {
         switch (rotationCode) {
             case 0:
             case 5:
@@ -64,10 +75,7 @@ public class PlacedItem {
         }
     }
 
-    /**
-     * Get the actual depth considering rotation
-     */
-    public int getActualDepth() {
+    public double getActualDepth() {
         switch (rotationCode) {
             case 0:
             case 3:
@@ -89,4 +97,3 @@ public class PlacedItem {
                 item.getId(), position, rotationCode);
     }
 }
-

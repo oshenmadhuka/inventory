@@ -7,16 +7,11 @@ import io.jenetics.util.ISeq;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Improved 3D bin packing problem with better diversity
- * Uses integer chromosomes to represent item priorities and packing strategies
- */
 public class ImprovedBinPackingProblem {
 
     private final List<Item> availableItems;
     private final Bin bin;
     private final Map<String, Item> itemMap;
-    private final Random random;
 
     public ImprovedBinPackingProblem(List<Item> availableItems, Bin bin) {
         this.availableItems = availableItems;
@@ -25,64 +20,49 @@ public class ImprovedBinPackingProblem {
         for (Item item : availableItems) {
             itemMap.put(item.getId(), item);
         }
-        this.random = new Random();
     }
 
-    /**
-     * Create genotype factory with integer genes representing:
-     * - Gene 0-3: Priorities for items A, B, C, D (0-100)
-     * - Gene 4: Packing strategy (0-3)
-     * - Gene 5: Layer preference (0-2)
-     */
     public io.jenetics.util.Factory<Genotype<IntegerGene>> genotypeFactory() {
         return Genotype.of(
-                // Priorities for each item type (4 genes, values 0-100)
                 IntegerChromosome.of(0, 100, 4),
-                // Packing strategy and preferences (2 genes)
                 IntegerChromosome.of(0, 10, 2));
     }
 
-    /**
-     * Improved fitness function with better diversity
-     */
     public double fitness(Genotype<IntegerGene> genotype) {
-        // Extract priorities from chromosome
         IntegerChromosome priorities = (IntegerChromosome) genotype.get(0);
         IntegerChromosome strategy = (IntegerChromosome) genotype.get(1);
 
-        // Create item sequence based on priorities
         List<String> itemSequence = createItemSequence(priorities);
 
-        // Pack items with strategy
         int packingStrategy = strategy.get(0).intValue() % 4;
         int layerPreference = strategy.get(1).intValue() % 3;
 
         List<PlacedItem> placedItems = packItems(itemSequence, packingStrategy, layerPreference);
 
-        // Calculate fitness
-        int usedVolume = placedItems.stream()
-                .mapToInt(pi -> pi.getItem().getVolume())
+        double usedArea = placedItems.stream()
+                .mapToDouble(pi -> pi.getItem().getArea())
                 .sum();
+
+        double occupiedArea = placedItems.stream()
+                .mapToDouble(pi -> pi.getItem().getBoundingBoxArea())
+                .sum();
+
+        double wastedArea = occupiedArea - usedArea;
 
         double totalValue = placedItems.stream()
                 .mapToDouble(pi -> pi.getItem().getCost())
                 .sum();
 
-        int totalVolume = bin.getTotalVolume();
+        double totalArea = bin.getTotalArea();
 
-        // Multi-objective fitness
-        double utilizationScore = (double) usedVolume / totalVolume * 100.0;
+        double utilizationScore = (usedArea / totalArea) * 100.0;
         double valueScore = totalValue / 10.0;
-        double diversityBonus = Math.abs(packingStrategy - 2) * 2.0; // Encourage variety
+        double wastePenalty = (wastedArea / totalArea) * 50.0;
 
-        return utilizationScore + valueScore + diversityBonus;
+        return utilizationScore + valueScore - wastePenalty;
     }
 
-    /**
-     * Create item sequence based on priorities
-     */
     private List<String> createItemSequence(IntegerChromosome priorities) {
-        // Get priority for each item type
         Map<String, Integer> itemPriorities = new HashMap<>();
         int index = 0;
         for (Item item : availableItems) {
@@ -92,20 +72,17 @@ public class ImprovedBinPackingProblem {
             }
         }
 
-        // Create sequence: higher priority items appear first
         List<String> sequence = new ArrayList<>();
 
-        // Sort items by priority (descending)
         List<Map.Entry<String, Integer>> sortedEntries = itemPriorities.entrySet()
                 .stream()
                 .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue()))
                 .collect(Collectors.toList());
 
-        // Add items in priority order with quantities
         for (Map.Entry<String, Integer> entry : sortedEntries) {
             String itemId = entry.getKey();
             Item item = itemMap.get(itemId);
-            int quantity = Math.min(item.getAvailableQuantity(), 50);
+            int quantity = Math.min(item.getAvailableQuantity(), 100);
 
             for (int i = 0; i < quantity; i++) {
                 sequence.add(itemId);
@@ -115,19 +92,18 @@ public class ImprovedBinPackingProblem {
         return sequence;
     }
 
-    /**
-     * Pack items with specified strategy
-     */
     private List<PlacedItem> packItems(List<String> sequence, int strategy, int layerPref) {
         List<PlacedItem> packed = new ArrayList<>();
-        boolean[][][] occupied = new boolean[bin.getWidth()][bin.getHeight()][bin.getDepth()];
+        int gridWidth = (int) Math.ceil(bin.getWidth());
+        int gridHeight = (int) Math.ceil(bin.getHeight());
+        boolean[][] occupied = new boolean[gridWidth][gridHeight];
 
         for (String itemId : sequence) {
             Item item = itemMap.get(itemId);
             if (item == null)
                 continue;
 
-            Position3D position = findPosition(item, occupied, strategy, layerPref);
+            Position2D position = findPosition(item, occupied, strategy);
 
             if (position != null) {
                 PlacedItem placedItem = new PlacedItem(item, position, 0);
@@ -139,139 +115,114 @@ public class ImprovedBinPackingProblem {
         return packed;
     }
 
-    /**
-     * Find position based on strategy
-     */
-    private Position3D findPosition(Item item, boolean[][][] occupied, int strategy, int layerPref) {
+    private Position2D findPosition(Item item, boolean[][] occupied, int strategy) {
         switch (strategy) {
-            case 0: // Bottom-up, left-right
-                return findBottomUp(item, occupied);
-            case 1: // Layer-by-layer
-                return findLayered(item, occupied, layerPref);
-            case 2: // Front-to-back
-                return findFrontToBack(item, occupied);
-            case 3: // Mixed strategy
-                return findMixed(item, occupied, layerPref);
+            case 0:
+                return findBottomLeft(item, occupied);
+            case 1:
+                return findTopLeft(item, occupied);
+            case 2:
+                return findBestFit(item, occupied);
+            case 3:
+                return findFirstFit(item, occupied);
             default:
-                return findBottomUp(item, occupied);
+                return findBottomLeft(item, occupied);
         }
     }
 
-    /**
-     * Bottom-up packing strategy
-     */
-    private Position3D findBottomUp(Item item, boolean[][][] occupied) {
-        for (int y = 0; y <= bin.getHeight() - item.getHeight(); y++) {
-            for (int x = 0; x <= bin.getWidth() - item.getWidth(); x++) {
-                for (int z = 0; z <= bin.getDepth() - item.getDepth(); z++) {
-                    if (canPlace(item, x, y, z, occupied)) {
-                        return new Position3D(x, y, z);
-                    }
+    private Position2D findBottomLeft(Item item, boolean[][] occupied) {
+        int itemWidth = (int) Math.ceil(item.getWidth());
+        int itemHeight = (int) Math.ceil(item.getHeight());
+
+        for (int y = 0; y <= occupied[0].length - itemHeight; y++) {
+            for (int x = 0; x <= occupied.length - itemWidth; x++) {
+                if (canPlace(item, x, y, occupied)) {
+                    return new Position2D(x, y);
                 }
             }
         }
         return null;
     }
 
-    /**
-     * Layer-by-layer packing strategy
-     */
-    private Position3D findLayered(Item item, boolean[][][] occupied, int startLayer) {
-        int layerSize = bin.getDepth() / 3;
-        int start = startLayer * layerSize;
+    private Position2D findTopLeft(Item item, boolean[][] occupied) {
+        int itemWidth = (int) Math.ceil(item.getWidth());
+        int itemHeight = (int) Math.ceil(item.getHeight());
 
-        for (int z = start; z <= bin.getDepth() - item.getDepth(); z++) {
-            for (int y = 0; y <= bin.getHeight() - item.getHeight(); y++) {
-                for (int x = 0; x <= bin.getWidth() - item.getWidth(); x++) {
-                    if (canPlace(item, x, y, z, occupied)) {
-                        return new Position3D(x, y, z);
-                    }
-                }
-            }
-        }
-
-        // Try other layers if first choice failed
-        for (int z = 0; z <= bin.getDepth() - item.getDepth(); z++) {
-            for (int y = 0; y <= bin.getHeight() - item.getHeight(); y++) {
-                for (int x = 0; x <= bin.getWidth() - item.getWidth(); x++) {
-                    if (canPlace(item, x, y, z, occupied)) {
-                        return new Position3D(x, y, z);
-                    }
+        for (int y = occupied[0].length - itemHeight; y >= 0; y--) {
+            for (int x = 0; x <= occupied.length - itemWidth; x++) {
+                if (canPlace(item, x, y, occupied)) {
+                    return new Position2D(x, y);
                 }
             }
         }
         return null;
     }
 
-    /**
-     * Front-to-back packing strategy
-     */
-    private Position3D findFrontToBack(Item item, boolean[][][] occupied) {
-        for (int z = 0; z <= bin.getDepth() - item.getDepth(); z++) {
-            for (int y = 0; y <= bin.getHeight() - item.getHeight(); y++) {
-                for (int x = 0; x <= bin.getWidth() - item.getWidth(); x++) {
-                    if (canPlace(item, x, y, z, occupied)) {
-                        return new Position3D(x, y, z);
+    private Position2D findBestFit(Item item, boolean[][] occupied) {
+        Position2D bestPos = null;
+        double bestScore = Double.MAX_VALUE;
+        int itemWidth = (int) Math.ceil(item.getWidth());
+        int itemHeight = (int) Math.ceil(item.getHeight());
+
+        for (int y = 0; y <= occupied[0].length - itemHeight; y++) {
+            for (int x = 0; x <= occupied.length - itemWidth; x++) {
+                if (canPlace(item, x, y, occupied)) {
+                    double score = Math.sqrt(x * x + y * y);
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestPos = new Position2D(x, y);
                     }
+                }
+            }
+        }
+        return bestPos;
+    }
+
+    private Position2D findFirstFit(Item item, boolean[][] occupied) {
+        int itemWidth = (int) Math.ceil(item.getWidth());
+        int itemHeight = (int) Math.ceil(item.getHeight());
+
+        for (int x = 0; x <= occupied.length - itemWidth; x++) {
+            for (int y = 0; y <= occupied[0].length - itemHeight; y++) {
+                if (canPlace(item, x, y, occupied)) {
+                    return new Position2D(x, y);
                 }
             }
         }
         return null;
     }
 
-    /**
-     * Mixed packing strategy
-     */
-    private Position3D findMixed(Item item, boolean[][][] occupied, int preference) {
-        // Combine strategies based on preference
-        Position3D pos = (preference == 0) ? findBottomUp(item, occupied) : findLayered(item, occupied, preference);
-        if (pos != null)
-            return pos;
-        return findFrontToBack(item, occupied);
-    }
+    private boolean canPlace(Item item, int x, int y, boolean[][] occupied) {
+        int itemWidth = (int) Math.ceil(item.getWidth());
+        int itemHeight = (int) Math.ceil(item.getHeight());
 
-    /**
-     * Check if item can be placed
-     */
-    private boolean canPlace(Item item, int x, int y, int z, boolean[][][] occupied) {
-        if (x + item.getWidth() > bin.getWidth() ||
-                y + item.getHeight() > bin.getHeight() ||
-                z + item.getDepth() > bin.getDepth()) {
+        if (x + itemWidth > occupied.length || y + itemHeight > occupied[0].length) {
             return false;
         }
 
-        for (int i = x; i < x + item.getWidth(); i++) {
-            for (int j = y; j < y + item.getHeight(); j++) {
-                for (int k = z; k < z + item.getDepth(); k++) {
-                    if (occupied[i][j][k]) {
-                        return false;
-                    }
+        for (int i = x; i < x + itemWidth; i++) {
+            for (int j = y; j < y + itemHeight; j++) {
+                if (occupied[i][j]) {
+                    return false;
                 }
             }
         }
         return true;
     }
 
-    /**
-     * Mark space as occupied
-     */
-    private void markOccupied(boolean[][][] occupied, Position3D position, Item item) {
-        int x = position.getX();
-        int y = position.getY();
-        int z = position.getZ();
+    private void markOccupied(boolean[][] occupied, Position2D position, Item item) {
+        int x = (int) position.getX();
+        int y = (int) position.getY();
+        int itemWidth = (int) Math.ceil(item.getWidth());
+        int itemHeight = (int) Math.ceil(item.getHeight());
 
-        for (int i = x; i < x + item.getWidth() && i < occupied.length; i++) {
-            for (int j = y; j < y + item.getHeight() && j < occupied[0].length; j++) {
-                for (int k = z; k < z + item.getDepth() && k < occupied[0][0].length; k++) {
-                    occupied[i][j][k] = true;
-                }
+        for (int i = x; i < x + itemWidth && i < occupied.length; i++) {
+            for (int j = y; j < y + itemHeight && j < occupied[0].length; j++) {
+                occupied[i][j] = true;
             }
         }
     }
 
-    /**
-     * Convert to packing solution
-     */
     public PackingSolution convertToSolution(Genotype<IntegerGene> genotype) {
         IntegerChromosome priorities = (IntegerChromosome) genotype.get(0);
         IntegerChromosome strategy = (IntegerChromosome) genotype.get(1);
@@ -292,14 +243,17 @@ public class ImprovedBinPackingProblem {
                     itemId, 1, pi.getPosition(), pi.getRotationCode()));
         }
 
-        int usedVolume = placedItems.stream()
-                .mapToInt(pi -> pi.getItem().getVolume())
+        double usedArea = placedItems.stream()
+                .mapToDouble(pi -> pi.getItem().getArea())
+                .sum();
+        double occupiedArea = placedItems.stream()
+                .mapToDouble(pi -> pi.getItem().getBoundingBoxArea())
                 .sum();
         double totalCost = placedItems.stream()
                 .mapToDouble(pi -> pi.getItem().getCost())
                 .sum();
 
-        solution.setTotalWastage(bin.getTotalVolume() - usedVolume);
+        solution.setTotalWastage((int) (occupiedArea - usedArea));
         solution.setTotalCost(totalCost);
         solution.setFitness(fitness(genotype));
 

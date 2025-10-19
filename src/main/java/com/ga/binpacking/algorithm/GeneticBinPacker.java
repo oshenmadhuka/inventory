@@ -89,11 +89,11 @@ public class GeneticBinPacker {
         PackingSolution solution = problem.convertToSolution(best.genotype());
 
         // Calculate detailed metrics
-        int usedVolume = problem.getBin().getTotalVolume() - solution.getTotalWastage();
+        int usedVolume = (int) (problem.getBin().getTotalVolume() - solution.getTotalWastage());
         double utilization = (double) usedVolume / problem.getBin().getTotalVolume() * 100.0;
 
         System.out.printf("Space Utilization: %.2f%%%n", utilization);
-        System.out.printf("Used Volume: %d / %d%n", usedVolume, problem.getBin().getTotalVolume());
+        System.out.printf("Used Volume: %d / %.0f%n", usedVolume, problem.getBin().getTotalVolume());
         System.out.printf("Wasted Volume: %d%n", solution.getTotalWastage());
         System.out.printf("Total Value: $%.2f%n", solution.getTotalCost());
         System.out.printf("Items Packed: %d%n", solution.getPlacements().size());
